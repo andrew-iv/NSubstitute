@@ -40,6 +40,11 @@ namespace NSubstitute.Proxies.DelegateProxy
             return DelegateProxy(typeToProxy, callRouter);
         }
 
+        public object GenerateProxyForTarget(ICallRouter callRouter, Type typeToProxy, Type[] additionalInterfaces, object target)
+        {
+            throw new NotSupportedException();
+        }
+
         private static bool HasItems<T>(T[] array)
         {
             return array != null && array.Length > 0;

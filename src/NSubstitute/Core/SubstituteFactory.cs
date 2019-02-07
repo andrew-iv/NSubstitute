@@ -48,6 +48,27 @@ namespace NSubstitute.Core
             return Create(typesToProxy, constructorArguments, callBaseByDefault: true);
         }
 
+        /// <summary>
+        /// Create an instance of the given types, with calls configured to call the base implementation
+        /// where possible. Parts of the instance can be substituted using 
+        /// <see cref="SubstituteExtensions.Returns{T}(T,T,T[])">Returns()</see>.
+        /// </summary>
+        /// <param name="typesToProxy"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        public object CreateProxy(Type[] typesToProxy, object target)
+        {
+            var primaryProxyType = GetPrimaryProxyType(typesToProxy);
+
+            var substituteState = _substituteStateFactory.Create(this);
+            substituteState.CallBaseConfiguration.CallBaseByDefault = true;
+
+            var callRouter = _callRouterFactory.Create(substituteState, true);
+            var additionalTypes = typesToProxy.Where(x => x != primaryProxyType).ToArray();
+            var proxy = _proxyFactory.GenerateProxyForTarget(callRouter, primaryProxyType, additionalTypes, target);
+            return proxy;
+        }
+
         private object Create(Type[] typesToProxy, object[] constructorArguments, bool callBaseByDefault)
         {
             var substituteState = _substituteStateFactory.Create(this);

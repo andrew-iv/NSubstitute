@@ -15,15 +15,18 @@ namespace NSubstitute.Proxies.CastleDynamicProxy
         private readonly ProxyGenerator _proxyGenerator;
         private readonly AllMethodsExceptCallRouterCallsHook _allMethodsExceptCallRouterCallsHook;
 
-        public CastleDynamicProxyFactory(ICallFactory callFactory, IArgumentSpecificationDequeue argSpecificationDequeue)
+        public CastleDynamicProxyFactory(ICallFactory callFactory,
+            IArgumentSpecificationDequeue argSpecificationDequeue)
         {
             _callFactory = callFactory ?? throw new ArgumentNullException(nameof(callFactory));
-            _argSpecificationDequeue = argSpecificationDequeue ?? throw new ArgumentNullException(nameof(argSpecificationDequeue));
+            _argSpecificationDequeue = argSpecificationDequeue ??
+                                       throw new ArgumentNullException(nameof(argSpecificationDequeue));
             _proxyGenerator = new ProxyGenerator();
             _allMethodsExceptCallRouterCallsHook = new AllMethodsExceptCallRouterCallsHook();
         }
 
-        public object GenerateProxy(ICallRouter callRouter, Type typeToProxy, Type[] additionalInterfaces, object[] constructorArguments)
+        public object GenerateProxy(ICallRouter callRouter, Type typeToProxy, Type[] additionalInterfaces,
+            object[] constructorArguments)
         {
             VerifyClassHasNotBeenPassedAsAnAdditionalInterface(additionalInterfaces);
 
@@ -46,6 +49,26 @@ namespace NSubstitute.Proxies.CastleDynamicProxy
             return proxy;
         }
 
+        public object GenerateProxyForTarget(ICallRouter callRouter, Type typeToProxy,
+            Type[] additionalInterfaces, object target)
+        {
+            VerifyClassHasNotBeenPassedAsAnAdditionalInterface(additionalInterfaces);
+
+            var proxyIdInterceptor = new ProxyIdInterceptor(typeToProxy);
+            var forwardingInterceptor = new ProxyCastleForwardingInterceptor(
+                _callFactory,
+                _argSpecificationDequeue,
+                callRouter);
+
+            var proxyGenerationOptions = GetOptionsToMixinCallRouterProvider(callRouter);
+
+            var proxy = _proxyGenerator.CreateInterfaceProxyWithTarget(typeToProxy, additionalInterfaces, target,
+                proxyGenerationOptions, proxyIdInterceptor, forwardingInterceptor);
+
+            forwardingInterceptor.SwitchToFullDispatchMode();
+            return proxy;
+        }
+
         /// <summary>
         /// Dynamically define the type with specified <paramref name="typeName"/>.
         /// </summary>
@@ -56,9 +79,9 @@ namespace NSubstitute.Proxies.CastleDynamicProxy
         }
 
         private object CreateProxyUsingCastleProxyGenerator(Type typeToProxy, Type[] additionalInterfaces,
-                                                            object[] constructorArguments,
-                                                            IInterceptor[] interceptors,
-                                                            ProxyGenerationOptions proxyGenerationOptions)
+            object[] constructorArguments,
+            IInterceptor[] interceptors,
+            ProxyGenerationOptions proxyGenerationOptions)
         {
             if (typeToProxy.GetTypeInfo().IsInterface)
             {
@@ -103,7 +126,8 @@ namespace NSubstitute.Proxies.CastleDynamicProxy
         {
             if (constructorArguments != null && constructorArguments.Length > 0)
             {
-                throw new SubstituteException("Can not provide constructor arguments when substituting for an interface.");
+                throw new SubstituteException(
+                    "Can not provide constructor arguments when substituting for an interface.");
             }
         }
 
@@ -111,7 +135,8 @@ namespace NSubstitute.Proxies.CastleDynamicProxy
         {
             if (additionalInterfaces != null && additionalInterfaces.Any(x => x.GetTypeInfo().IsClass))
             {
-                throw new SubstituteException("Can not substitute for multiple classes. To substitute for multiple types only one type can be a concrete class; other types can only be interfaces.");
+                throw new SubstituteException(
+                    "Can not substitute for multiple classes. To substitute for multiple types only one type can be a concrete class; other types can only be interfaces.");
             }
         }
 
@@ -124,8 +149,8 @@ namespace NSubstitute.Proxies.CastleDynamicProxy
                     return true;
 
                 return IsNotCallRouterProviderMethod(methodInfo)
-                    && IsNotBaseObjectMethod(methodInfo)
-                    && base.ShouldInterceptMethod(type, methodInfo);
+                       && IsNotBaseObjectMethod(methodInfo)
+                       && base.ShouldInterceptMethod(type, methodInfo);
             }
 
             private static bool IsNotCallRouterProviderMethod(MethodInfo methodInfo)

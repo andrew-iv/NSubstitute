@@ -15,12 +15,23 @@ namespace NSubstitute.Proxies
             _dynamicProxyFactory = dynamicProxyFactory;
         }
 
-        public object GenerateProxy(ICallRouter callRouter, Type typeToProxy, Type[] additionalInterfaces, object[] constructorArguments)
+        public object GenerateProxy(ICallRouter callRouter, Type typeToProxy, Type[] additionalInterfaces,
+            object[] constructorArguments)
         {
             var isDelegate = typeToProxy.GetTypeInfo().IsSubclassOf(typeof(Delegate));
-            return isDelegate 
+            return isDelegate
                 ? _delegateFactory.GenerateProxy(callRouter, typeToProxy, additionalInterfaces, constructorArguments)
-                : _dynamicProxyFactory.GenerateProxy(callRouter, typeToProxy, additionalInterfaces, constructorArguments);
+                : _dynamicProxyFactory.GenerateProxy(callRouter, typeToProxy, additionalInterfaces,
+                    constructorArguments);
+        }
+
+        public object GenerateProxyForTarget(ICallRouter callRouter, Type typeToProxy, Type[] additionalInterfaces,
+            object target)
+        {
+            var isDelegate = typeToProxy.GetTypeInfo().IsSubclassOf(typeof(Delegate));
+            return isDelegate
+                ? throw new NotImplementedException()
+                : _dynamicProxyFactory.GenerateProxyForTarget(callRouter, typeToProxy, additionalInterfaces, target);
         }
     }
 }
